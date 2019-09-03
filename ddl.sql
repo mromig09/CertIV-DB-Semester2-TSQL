@@ -94,27 +94,28 @@ select * from customer;
 --------------------DELETE CUSTOMER-------------------
 
 
-if object_id('delete_all_customers') is not null drop procedure delete_all_customers;
+if object_id('delete_all_customers') is not null 
+drop procedure delete_all_customers;
 go
 
-create procedure delete_all_customers @pcustID int, @pcustName nvarchar(100) as
+create procedure delete_all_customers as
+begin try
+    delete from customer;
+    return @@rowcount;
+end try
 
-begin
-    delete from customer
-        where custID = @pcustID and 
-              custName = @pcustName
-end
-
-begin
+begin catch
     declare @errormessage nvarchar(max) = error_message();
     throw 50000, @errormessage, 1
-end;
+end catch;
 
 go
 
-exec delete_all_customers @pcustID = custID, @pcustName = custName;
-
-select * from customer;
+begin
+declare @count int;
+exec @count = delete_all_customers;
+select @count;
+end;
 
 
 ----------------------ADD PRODUCT---------------------
@@ -158,29 +159,28 @@ select * from product;
 --------------------DELETE PRODUCT--------------------
 
 
-if object_id('delete_all_products') is not null drop procedure delete_all_products;
+if object_id('delete_all_products') is not null 
+drop procedure delete_all_products;
 go
 
-create procedure delete_all_products @pprodID int, @pprodName nvarchar(100), 
-                                     @pprice money as
+create procedure delete_all_products as
+begin try
+    delete from product;
+    return @@rowcount;
+end try
 
-begin
-    delete from product
-        where prodID = @pprodID and 
-              prodName = @pprodName and
-              sellingPrice = @pprice
-end
-
-begin
+begin catch
     declare @errormessage nvarchar(max) = error_message();
     throw 50000, @errormessage, 1
-end;
+end catch;
 
 go
 
-exec delete_all_products @pprodID = custID, @pprodName = custName, @pprice = sellingPrice;
-
-select * from product;
+begin
+declare @count int;
+exec @count = delete_all_products;
+select @count;
+end;
 
 
 -----------------GET CUSTOMER STRING------------------
@@ -192,9 +192,10 @@ go
 create procedure get_customer_string @pcustID int as
 
 begin
-    begin try
-end try
-    begin catch
+  
+
+
+    begin
         if error_number() = 2627
             throw 50060, 'Customer ID not found', 1
         else if error_number() = 50000
@@ -204,6 +205,6 @@ end try
                 declare @errormessage nvarchar(max) = error_message();
                 throw 50000, @errormessage, 1
                 end;
-    end catch;
+    end;
 
 end;
