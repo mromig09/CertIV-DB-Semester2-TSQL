@@ -51,7 +51,7 @@ create sequence sale_seq;
 go
 
 
---------------------ADD CUSTOMER--------------------
+---------------------ADD CUSTOMER---------------------
 
 
 if object_id ('add_customer') is not null drop procedure add_customer;
@@ -68,6 +68,7 @@ begin
         (@pcustID, @pcustName, 0, 'ok');
 
 end try
+
     begin catch
         if error_number() = 2627
             throw 50010, 'Duplicate Customer ID', 1
@@ -77,19 +78,20 @@ end try
             begin
                 declare @errormessage nvarchar(max) = error_message();
                 throw 50000, @errormessage, 1
-                end;
-            end catch;
+            end;
+    end catch;
             
 end;
+
 go
 
 exec add_customer @pcustID = 1, @pcustName = 'testdude2';
-exec add_customer @pcustID = 500, @pcustName = 'testdude3';
+exec add_customer @pcustID = 499, @pcustName = 'testdude3';
 
 select * from customer;
 
 
---------------------DELETE CUSTOMER--------------------
+--------------------DELETE CUSTOMER-------------------
 
 
 if object_id('delete_all_customers') is not null drop procedure delete_all_customers;
@@ -104,10 +106,10 @@ begin
 end
 
 begin
-declare @errormessage nvarchar(max) = error_message();
-raise_application_error (-50000, 'Use value of error_message()') 
+    declare @errormessage nvarchar(max) = error_message();
+    throw 50000, @errormessage, 1
 end;
-  
+
 go
 
 exec delete_all_customers @pcustID = custID, @pcustName = custName;
@@ -115,18 +117,93 @@ exec delete_all_customers @pcustID = custID, @pcustName = custName;
 select * from customer;
 
 
-----------------------ADD PRODUCT----------------------
+----------------------ADD PRODUCT---------------------
 
 
 if object_id('add_product') is not null drop procedure add_product;
 go
 
-create procedure
+create procedure add_product @pprodID int, @pprodName nvarchar(100), @pprice money as
+
+begin
+    begin try
+        if @pprodID < 1000 or @pprodID > 2500
+        throw 50040, 'Product ID out of range', 1
+
+        insert into product (prodID, prodName, sellingPrice, sales_ytd) values
+        (@pprodID, @pprodName, @pprice, 0);
+    end try
+
+    begin catch
+        if error_number() = 2627
+            throw 50030, 'Duplicate Product ID', 1
+        else if error_number() = 50000
+            throw
+        else
+            begin
+                declare @errormessage nvarchar(max) = error_message();
+                throw 50000, @errormessage, 1
+            end;
+    end catch;
+end;
+
+go
+
+exec add_product @pprodID = 1000, @pprodName = 'testprice1', @pprice = 500;
+exec add_product @pprodID = 2500, @pprodName = 'testprice2', @pprice = 20000;
+
+select * from product;
+
 
 --------------------DELETE PRODUCT--------------------
 
 
-if object_id('delete_product') is not null drop procedure delete_product;
+if object_id('delete_all_products') is not null drop procedure delete_all_products;
 go
 
-create procedure
+create procedure delete_all_products @pprodID int, @pprodName nvarchar(100), 
+                                     @pprice money as
+
+begin
+    delete from product
+        where prodID = @pprodID and 
+              prodName = @pprodName and
+              sellingPrice = @pprice
+end
+
+begin
+    declare @errormessage nvarchar(max) = error_message();
+    throw 50000, @errormessage, 1
+end;
+
+go
+
+exec delete_all_products @pprodID = custID, @pprodName = custName, @pprice = sellingPrice;
+
+select * from product;
+
+
+-----------------GET CUSTOMER STRING------------------
+
+
+if object_id('get_customer_string') is not null drop procedure  get_customer_string;
+go
+
+create procedure get_customer_string @pcustID int as
+
+begin
+    begin try
+end try
+    begin catch
+        if error_number() = 2627
+            throw 50060, 'Customer ID not found', 1
+        else if error_number() = 50000
+            throw
+        else
+            begin
+                declare @errormessage nvarchar(max) = error_message();
+                throw 50000, @errormessage, 1
+                end;
+    end catch;
+
+end;
