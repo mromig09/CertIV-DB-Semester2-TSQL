@@ -136,7 +136,7 @@ begin
     end try
 
     begin catch
-        if error_number() = 2627
+        if error_number() = 2667
             throw 50030, 'Duplicate Product ID', 1
         else if error_number() = 50000
             throw
@@ -186,25 +186,121 @@ end;
 -----------------GET CUSTOMER STRING------------------
 
 
-if object_id('get_customer_string') is not null drop procedure  get_customer_string;
+if object_id('get_customer_string') is not null 
+drop procedure  get_customer_string;
 go
 
-create procedure get_customer_string @pcustID int as
-
+create procedure get_customer_string @pcustID int, @preturnstring nvarchar(1000) output as
 begin
-  
+    begin try
+        select @preturnstring = concat ('custID: ', custID, ', ', 'Name: ', custName, ', ', 
+        'Status: ', status, ', ', 'SalesYTD: ', sales_ytd)
+        from customer
+        where custID = @pcustID
+    end try
 
-
-    begin
-        if error_number() = 2627
-            throw 50060, 'Customer ID not found', 1
+    begin catch
+        if error_number() = 2657
+            throw 50060, 'No matching customer ID not found', 1
         else if error_number() = 50000
             throw
         else
             begin
                 declare @errormessage nvarchar(max) = error_message();
                 throw 50000, @errormessage, 1
-                end;
-    end;
-
+            end;
+    end catch;
 end;
+
+go
+
+begin
+    declare @output nvarchar(1000);
+    exec get_customer_string @pcustID = 1, @preturnstring = @output OUTPUT;
+    select @output as 'customer';
+end;
+
+
+---------------UPDATE CUSTOMER SALESYTD---------------
+
+
+if object_id('update_customer_salesytd') is not null 
+drop procedure  update_customer_salesytd;
+go
+
+create procedure update_customer_salesytd @pcustID int, @pamt int as
+begin
+    begin try
+        update customer
+        set sales_ytd = sales_ytd + @pamt 
+        where custID = @pcustID
+    end try
+
+    begin catch
+        if error_number() = 2637
+            throw 50070, 'No rows updated', 1
+        else if error_number() = 50080
+            throw 50080, 'Pamt out side of range -999.99 to 999.99', 2
+        else
+            begin
+                declare @errormessage nvarchar(max) = error_message();
+                throw 50000, @errormessage, 1
+            end;
+    end catch;
+end;
+
+go
+
+begin
+    declare @pamt int;
+    exec update_customer_salesytd @pcustID = 1, @pamt = 999.99;
+    exec update_customer_salesytd @pcustID = 499, @pamt = 500.99;
+end;
+
+select * from customer
+
+
+------------------GET PRODUCT STRING------------------
+
+
+if object_id('get_product_string') is not null 
+drop procedure  get_product_string;
+go
+
+create procedure get_product_string @pprodID int, @preturnstring nvarchar(1000) output as
+begin
+    begin try
+        select @preturnstring = concat ('prodID: ', prodID, ', ', 'Name: ', prodName, ', ', 
+        'Price: ', sellingPrice, ', ', 'SalesYTD: ', sales_ytd)
+        from product
+        where prodID = @pprodID
+    end try
+ 
+    begin catch
+        if error_number() = 2647
+            throw 50090, 'No matching product ID not found', 1
+        else if error_number() = 50000
+            throw
+        else
+            begin
+                declare @errormessage nvarchar(max) = error_message();
+                throw 50000, @errormessage, 1
+            end;
+    end catch;
+end;
+
+go
+
+begin
+    declare @output nvarchar(1000);
+    exec get_product_string @pprodID = 1000, @preturnstring = @output OUTPUT;
+    select @output as 'product';
+end;
+
+
+-------------------GET PROD SALESYTD------------------
+
+
+if object_id('update_product_salesytd') is not null 
+drop procedure  update_product_salesytd;
+go
