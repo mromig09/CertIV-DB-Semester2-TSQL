@@ -298,9 +298,40 @@ begin
 end;
 
 
--------------------GET PROD SALESYTD------------------
+-------------------UPDATE PROD SALESYTD------------------
 
 
 if object_id('update_product_salesytd') is not null 
 drop procedure  update_product_salesytd;
 go
+
+create procedure update_product_salesytd @pprodID int, @pamt int as
+begin
+    begin try
+        if not exists (
+            select @pprodID
+            from product
+            where prodID = @pprodID)
+            
+            throw 50100, 'Product ID is not found', 1
+            if @pamt <-999.99 or @pamt > 999.99
+            throw 50110, 'Amount is out of range', 1
+
+            update product set
+            sales_ytd = sales_ytd + @pamt
+            where prodID = @pprodID;
+    end try
+
+begin catch
+    if error_number() = 50100
+    throw
+    if error_number() = 50110
+    throw
+end catch
+end
+
+exec update_product_salesytd @pprodID = 2209, @pamt = 500;
+
+select *
+from product
+
