@@ -335,3 +335,109 @@ exec update_product_salesytd @pprodID = 2209, @pamt = 500;
 select *
 from product
 
+
+-------------------UPDATE CUSTOMER STATUS------------------
+
+if object_id('update_customer_status') is not null
+drop procedure update_customer_status
+go
+
+create procedure update_customer_status @pcustID int, @pstatus nvarchar(7) as
+begin
+    begin try
+        if not exists (
+            select @pcustID
+            from customer
+            where custID = @pcustID)
+
+            throw 50120, 'Customer ID is not found', 1
+
+            if @pstatus = 'ok' or @pstatus = 'suspend'
+            update customer set
+            status = upper(@pstatus)
+            where custID = @pcustID;
+            else
+            throw 5013, 'Invalid status value', 1
+    end try
+
+    begin catch
+        if error_number() = 50120
+        throw
+        if error_number() = 50130
+        throw
+    end catch
+end
+
+exec update_customer_status @pcustID = 1, @pstatus = 'ok';
+exec update_customer_status @pcustID = 2, @pstatus = 'suspend';
+
+exec update_customer_status @pcustID = 40, @pstatus = 'suspend';
+exec update_customer_status @pcustID = 2, @pstatus = 'testInvalid';
+
+select * 
+from customer
+
+
+-------------------ADD SIMPLE SALE------------------
+
+
+if object_id('add_simple_sale') is not null
+drop procedure add_simple_sale;
+go
+
+create procedure add_simple_sale @pcustID int, @pprodID int, @pqty int as
+
+begin
+    begin try
+        declare
+        @pthisCustID int = @pcustID,
+        @pthisProdID int = @pprodID;
+
+        declare
+        @prices int
+        select @pprices = sellingPrice
+        from product
+        where prodID = @pprodID;
+
+        DECLARE
+        @pqtyPriceProd int = @pqty * prices;
+
+        if not exists (
+            select @pcustID 
+            from customer 
+            where custID = @pthisCustID)
+
+                throw 50160, 'Customer ID is not found', 1
+
+        if not exists (
+            select @pthisProdID
+            from product
+            where prodID = @pthisProdID)
+
+                throw 50170, 'Product ID is not found', 1
+        
+        if not exists (
+            select @pthisCustID
+            from customer
+            where custID = @pthisCustID and status = 'suspend')
+
+                throw 50150, 'Customer status is not ok', 1
+            
+        if @pqty < 1 or @pqty > 999
+            throw 50140, 'Sale quantity is out of range', 1
+
+        exec update_customer_salesytd @pcustID = @pthisCustID, @pamt = @pqtyPriceProd;
+        exec update_customer_salesytd @pprodID = @pthisProdID, @pamt = @pqtyPriceProd;
+    end try
+
+    begin catch
+        if error_number() = 50140
+        throw
+        if error_number() = 50150
+        throw
+        if error_number() = 50160
+        throw
+        if error_number() = 50170
+        throw
+    end catch
+end
