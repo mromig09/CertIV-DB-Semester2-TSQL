@@ -441,3 +441,178 @@ begin
         throw
     end catch
 end
+
+exec add_simple_salesytd @pcustID = 3, @pprodID = 2000, @pqty = 20;
+exec add_simple_salesytd @pcustID = 22, @pprodID = 2000, @pqty = 30;
+
+select *
+from customer
+
+select * 
+from product
+
+
+--------------------SUM CUSTOMER SALESYTD-------------------
+
+
+if object_id('sum_customer_salesytd') is not null
+drop procedure sum_customer_salesytd;
+go
+
+create procedure sum_customer_salesytd @psumCustSales int output as
+begin
+    select @psumCustSales = sum(sales_ytd)
+    from (
+    select sales_ytd
+    from customer )a
+    return @psumCustSales
+end
+
+begin
+    declare @output nvarchar(max);
+    exec sum_customer_salesytd @psumCustSales = @output output;
+    select @output as 'sum of customer sales_ytd';
+end
+
+
+--------------------SUM PRODUCT SALESYTD-------------------
+
+
+if object_id('sum_product_salesytd') is not null
+drop procedure sum_product_salesytd;
+go
+
+create procedure sum_product_salesytd @psumProdSales int output as
+begin
+    select @psumProdSales = sum(sales_ytd)
+    from (
+    select sales_ytd
+    from product )a
+    return @psumProdSales
+end
+
+begin
+    declare @output nvarchar(max);
+    exec sum_product_salesytd @psumProdSales = @output output;
+    select @output as 'sum of product sales_ytd';
+end
+
+
+----------------------GET ALL PRODUCTS---------------------
+
+
+if object_id('get_all_products') is not null
+drop procedure get_all_products;
+go
+
+create procedure get_all_products @poutcur cursor varying output as
+
+begin
+    begin try
+        set @poutcur = cursor for select *
+        from product;
+        open @poutcur;
+    end try
+
+    begin catch
+    declare @errormessage nvarchar(max) = error_message();
+    throw 50000, @errormessage, 1
+    end catch
+end
+
+begin
+    declare @cur cursor;
+
+    exec get_all_products @poutcur = @cur output;
+
+    declare
+    @pprodID int,
+    @pprodName nvarchar(100),
+    @sellingPrice money,
+    @sales_ytd money;
+
+    fetch next from @cur into @pprodID, @pprodName, @sellingPrice, @sales_ytd;
+
+    while @@fetch_status = 0
+
+    begin
+        print(concat('ID: ', @pprodID, ', ', 'Name: ', @pprodName, ', ', 'Selling Price: ', @sellingPrice, ', ', 'Sales_YTD: ', @sales_ytd))
+        fetch next from @cur into @pprodID, @pprodName, @sellingPrice, @sales_ytd;
+    end
+
+    close @cur
+    deallocate @cur
+end
+
+
+------------------------ADD LOCATION-----------------------
+
+
+if object_id('add_location') is not null
+drop procedure add_location;
+go
+
+create procedure add_location @plocCode nvarchar(5), @minQty int, @maxQty int as
+
+begin
+    begin try
+        declare @lengthcheck nvarchar(5) = '12345';
+        
+        if @pminQty < 0 or @pminQty > 999
+        throw 50200, 'Minimum qty is out of range', 1
+
+        if @pmaxQty < 0 or @pmaxQty > 999
+        throw 50210, 'Maximum qty us out of range', 1
+
+        if @pminQty > @pmaxQty
+        throw 50220, 'Minimum qty larger than maximum qty', 1
+        
+        if @plocCode like '[a-Za-z]%' or @plocCode > 99
+        throw 50190, 'Location code length invalid', 1
+
+        insert into [location] (locID, minQty, maxQty) values
+        ('loc' + @plocCode, @pminQty, @pmaxQty);
+    end try
+
+    begin catch
+        if error_number() = 2627
+        throw 50180, 'Duplicate location ID', 1
+        
+        else if error_number() = 50190
+        throw
+        else if error_number() = 50200
+        throw
+        else if error_number() = 50210
+        throw
+        else if error_number() = 50220
+        throw
+
+        begin
+            declare @errormessage nvarchar(max) = error_message();
+            throw 50000, @errormessage, 1
+        end;
+    end catch;
+end;
+
+exec add_location @ = 71, @pminQty = 0, @pmaxQty = 30;
+exec add_location @ = 99, @pminQty = 66, @pmaxQty = 777;
+exec add_location @ = 24, @pminQty = 6, @pmaxQty = 44;
+
+select *
+from [location]
+
+
+----------------------ADD COMPLEX SALE---------------------
+
+
+if object_id('add_complex_sale') is not null
+drop procedure add_complex_sale;
+go
+
+
+------------------------GET ALL SALES----------------------
+
+
+if object_id('get_all_sales') is not null
+drop procedure get_all_sales;
+go
